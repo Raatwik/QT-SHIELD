@@ -747,9 +747,7 @@ function updateEveStatus() {
   const eve   = document.getElementById('eve-toggle').checked;
   const label = document.querySelector('.toggle-label');
   label.style.color = eve ? '#ff4466' : '#e0e0ff';
-
-  // Trigger Eve jitter on BB84 sphere immediately
-  if (window._blochBB84) window._blochBB84.setEve(eve);
+  // Arrow only shakes AFTER simulation detects Eve
 }
 
 async function runBB84() {
@@ -799,14 +797,23 @@ function displayBB84Results(data) {
   if (data.bloch_states && data.bloch_states.length > 0) {
     const aliceStates = data.bloch_states.filter(s => s.owner === 'alice');
     if (aliceStates.length > 0 && window._blochBB84) {
-      const last = aliceStates[aliceStates.length - 1].state;
-      window._blochBB84.setCoords(last.x, last.y, last.z);
-      // Collapse animation on measurement
-      setTimeout(() => {
-        if (window._blochBB84)
-          window._blochBB84.collapse(last.z >= 0);
-      }, 2000);
-    }
+  const last = aliceStates[aliceStates.length - 1].state;
+  window._blochBB84.setCoords(last.x, last.y, last.z);
+
+  if (data.eve_detected) {
+    // Eve was caught — start shaking after arrow animates
+    setTimeout(() => {
+      if (window._blochBB84) window._blochBB84.setEve(true);
+    }, 1800);
+  } else {
+    // No Eve — stop shaking, collapse cleanly
+    if (window._blochBB84) window._blochBB84.setEve(false);
+    setTimeout(() => {
+      if (window._blochBB84)
+        window._blochBB84.collapse(last.z >= 0);
+    }, 2000);
+  }
+}
   }
 
   // Key bits
